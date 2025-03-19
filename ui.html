@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-weight: bold;
+    }
+    button {
+      background-color: #18A0FB;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .file-info {
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="input-group">
+      <label for="csv">CSV File (with text content)</label>
+      <input type="file" id="csv" accept=".csv" />
+      <div id="csv-info" class="file-info"></div>
+    </div>
+    
+    <div class="input-group">
+      <label for="images">Images</label>
+      <input type="file" id="images" accept="image/*" multiple />
+      <div id="images-info" class="file-info"></div>
+    </div>
+    
+    <button id="create" disabled>Create Designs</button>
+  </div>
+
+  <script>
+    let csvData = null;
+    let imageFiles = [];
+
+    document.getElementById('csv').onchange = async (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        csvData = await file.text();
+        document.getElementById('csv-info').textContent = `Selected: ${file.name}`;
+        updateCreateButton();
+      }
+    };
+
+    document.getElementById('images').onchange = (event) => {
+      imageFiles = Array.from(event.target.files);
+      document.getElementById('images-info').textContent = 
+        `Selected: ${imageFiles.length} image(s)`;
+      updateCreateButton();
+    };
+
+    function updateCreateButton() {
+      const createButton = document.getElementById('create');
+      createButton.disabled = !csvData || imageFiles.length === 0;
+    }
+
+    document.getElementById('create').onclick = async () => {
+      const imagePromises = imageFiles.map(file => 
+        file.arrayBuffer().then(buffer => new Uint8Array(buffer))
+      );
+      
+      const images = await Promise.all(imagePromises);
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'create-designs',
+          csvData,
+          images
+        }
+      }, '*');
+    };
+  </script>
+</body>
+</html> 
